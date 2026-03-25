@@ -27,3 +27,10 @@ CREATE TABLE fato_avaliacao (
     id_filme INT REFERENCES dim_filme(id_filme),
     rating FLOAT
 );
+
+
+ALTER TABLE dim_usuario ADD CONSTRAINT unique_usuario UNIQUE (user_id);
+
+ALTER TABLE dim_data ADD CONSTRAINT unique_data UNIQUE (data);
+
+ALTER TABLE dim_filme ADD CONSTRAINT unique_filme_genero UNIQUE (movie_id, genero);
