@@ -29,8 +29,19 @@ CREATE TABLE fato_avaliacao (
 );
 
 
-ALTER TABLE dim_usuario ADD CONSTRAINT unique_usuario UNIQUE (user_id);
+ALTER TABLE dim_filme 
+ADD CONSTRAINT unique_filme_genero UNIQUE (movie_id, genero);
 
-ALTER TABLE dim_data ADD CONSTRAINT unique_data UNIQUE (data);
+ALTER TABLE dim_usuario 
+ADD CONSTRAINT unique_usuario UNIQUE (user_id);
 
-ALTER TABLE dim_filme ADD CONSTRAINT unique_filme_genero UNIQUE (movie_id, genero);
+ALTER TABLE dim_data 
+ADD CONSTRAINT unique_data UNIQUE (data);
+
+
+-- Limpeza das tabelas
+
+TRUNCATE TABLE fato_avaliacao RESTART IDENTITY CASCADE;
+TRUNCATE TABLE dim_data RESTART IDENTITY CASCADE;
+TRUNCATE TABLE dim_usuario RESTART IDENTITY CASCADE;
+TRUNCATE TABLE dim_filme RESTART IDENTITY CASCADE;
