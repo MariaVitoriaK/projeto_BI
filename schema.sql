@@ -39,6 +39,23 @@ ALTER TABLE dim_data
 ADD CONSTRAINT unique_data UNIQUE (data);
 
 
+CREATE TABLE dim_tag (
+    id_tag SERIAL PRIMARY KEY,
+    tag TEXT UNIQUE
+);
+
+
+CREATE TABLE fato_tag (
+    id_tag SERIAL PRIMARY KEY,
+    id_usuario INT,
+    id_filme INT,
+    id_data INT,
+    tag_id INT,
+    FOREIGN KEY (id_usuario) REFERENCES dim_usuario(id_usuario),
+    FOREIGN KEY (id_filme) REFERENCES dim_filme(id_filme),
+    FOREIGN KEY (id_data) REFERENCES dim_data(id_data),
+    FOREIGN KEY (tag_id) REFERENCES dim_tag(id_tag)
+);
 -- Limpeza das tabelas
 
 TRUNCATE TABLE fato_avaliacao RESTART IDENTITY CASCADE;

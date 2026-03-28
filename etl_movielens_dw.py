@@ -17,34 +17,38 @@ def connect():
 def extract():
     movies = pd.read_csv("movies.csv")
     ratings = pd.read_csv("ratings.csv")
-    return movies, ratings
+    tags = pd.read_csv("tags.csv")
+    return movies, ratings, tags
 
 # ------------------------
 # TRANSFORM
 # ------------------------
-def transform(movies, ratings):
+def transform(movies, ratings, tags):
 
-    # -------- LIMPEZA --------
     movies = movies.fillna("Desconhecido")
     ratings = ratings.dropna()
+    tags = tags.dropna()
 
-    # -------- GÊNEROS --------
+    # Gêneros
     movies["genero"] = movies["genres"].str.split("|")
     movies = movies.explode("genero")
 
-    # -------- DATAS --------
+    # Datas ratings
     ratings["data"] = pd.to_datetime(ratings["timestamp"], unit="s")
     ratings["dia"] = ratings["data"].dt.day
     ratings["mes"] = ratings["data"].dt.month
     ratings["ano"] = ratings["data"].dt.year
     ratings["trimestre"] = ratings["data"].dt.quarter
 
-    return movies, ratings
+    # Datas tags
+    tags["data"] = pd.to_datetime(tags["timestamp"], unit="s")
+
+    return movies, ratings, tags
 
 # ------------------------
 # LOAD
 # ------------------------
-def load(movies, ratings):
+def load(movies, ratings, tags):
     conn = connect()
     cur = conn.cursor()
 
@@ -71,7 +75,17 @@ def load(movies, ratings):
         """,
         [(int(u),) for u in usuarios]
     )
-
+    # -------- DIM_TAG --------
+    tags_unicas = tags["tag"].drop_duplicates()
+    
+    cur.executemany(
+        """
+        INSERT INTO dim_tag (tag)
+        VALUES (%s)
+        ON CONFLICT (tag) DO NOTHING
+        """,
+        [(t,) for t in tags_unicas]
+    )
     # -------- DIM_DATA --------
     datas = ratings[["data","dia","mes","ano","trimestre"]].drop_duplicates()
 
@@ -87,12 +101,16 @@ def load(movies, ratings):
             for _, row in datas.iterrows()
         ]
     )
+    
 
     conn.commit()
 
     # -------- CRIAR MAPAS --------
     cur.execute("SELECT id_data, data FROM dim_data")
     map_data = {row[1]: row[0] for row in cur.fetchall()}
+
+    cur.execute("SELECT id_tag, tag FROM dim_tag")
+    map_tag = {row[1]: row[0] for row in cur.fetchall()}
 
     cur.execute("SELECT id_usuario, user_id FROM dim_usuario")
     map_usuario = {row[1]: row[0] for row in cur.fetchall()}
@@ -121,17 +139,39 @@ def load(movies, ratings):
         fato
     )
 
+    # -------- FATO_TAG --------
+    fato_tags = []
+
+    for _, t in tags.iterrows():
+        id_usuario = map_usuario.get(int(t.userId))
+        id_filme = map_filme.get(int(t.movieId))
+        id_tag = map_tag.get(t.tag)
+        id_data = map_data.get(t.data.date())
+
+        if id_usuario and id_filme and id_tag and id_data:
+            fato_tags.append((id_usuario, id_filme, id_data, id_tag))
+
+    cur.executemany(
+        """
+        INSERT INTO fato_tag (id_usuario, id_filme, id_data, tag_id)
+        VALUES (%s, %s, %s, %s)
+        """,
+        fato_tags
+    )
+
     conn.commit()
     cur.close()
     conn.close()
+
+
 
 # ------------------------
 # MAIN
 # ------------------------
 def main():
-    movies, ratings = extract()
-    movies, ratings = transform(movies, ratings)
-    load(movies, ratings)
+    movies, ratings, tags = extract()
+    movies, ratings, tags = transform(movies, ratings, tags)
+    load(movies, ratings, tags)
     print("✨ ETL concluído com sucesso.")
 
 if __name__ == "__main__":

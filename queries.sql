@@ -85,3 +85,21 @@ SELECT rating, COUNT(*) AS total
 FROM fato_avaliacao
 GROUP BY rating
 ORDER BY rating;
+
+
+-- 11. Tags mais usadas
+SELECT t.tag, COUNT(*) 
+FROM fato_tag f
+JOIN dim_tag t ON f.tag_id = t.id_tag
+GROUP BY t.tag
+ORDER BY COUNT(*) DESC
+LIMIT 10;
+
+
+-- 12. Média de rating por tag
+SELECT t.tag, AVG(a.rating)
+FROM fato_tag ft
+JOIN dim_tag t ON ft.tag_id = t.id_tag
+JOIN fato_avaliacao a ON ft.id_filme = a.id_filme
+GROUP BY t.tag
+ORDER BY AVG(a.rating) DESC;
